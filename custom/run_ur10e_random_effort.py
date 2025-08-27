@@ -5,7 +5,7 @@
 """
 Spawn a single UR10e from a local USD and apply random joint efforts (arms.py style).
 
-./isaaclab.sh -p scripts/custom/run_ur10e_random_effort.py \
+./isaaclab.sh -p nrs_lab/custom/run_ur10e_random_effort.py \
   --usd_path /home/eunseop/isaac/isaac_save/ur10e_convex_surface.usd \
   --effort_scale 3.0 --headless
 

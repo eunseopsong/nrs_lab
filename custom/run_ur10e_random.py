@@ -7,7 +7,7 @@ UR10e from a local USD, random interaction (arms.py style).
 - control=position : 데모처럼 joint position targets(±noise) + PD
 - control=effort   : 무작위 토크 (tanh로 완만 제한)
 
-./isaaclab.sh -p scripts/custom/run_ur10e_random.py \
+./isaaclab.sh -p nrs_lab/custom/run_ur10e_random.py \
   --usd_path /home/eunseop/isaac/isaac_save/ur10e_convex_surface.usd \
   --control position --noise 0.10 --headless
 

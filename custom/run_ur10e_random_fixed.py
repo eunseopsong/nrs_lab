@@ -7,7 +7,7 @@ UR10e from a local USD, random interaction (arms.py style) with base anchoring:
 - High-friction ground via GroundPlaneCfg
 - Position-control (PD) with small random targets (demo-like)
 
-./isaaclab.sh -p scripts/custom/run_ur10e_random_fixed.py \
+./isaaclab.sh -p nrs_lab/custom/run_ur10e_random_fixed.py \
     --usd_path /home/USER/isaac/isaac_save/ur10e_convex_surface.usd \
     --noise 0.10 --stiffness 3000 --damping 60
 
