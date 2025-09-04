@@ -43,22 +43,25 @@ def main():
     # count of environments
     index = 0
     # acquire all Isaac environments names
+    # for task_spec in gym.registry.values():
+    #     if "Template-" in task_spec.id:
+    #         # add details to table
+    #         table.add_row([index + 1, task_spec.id, task_spec.entry_point, task_spec.kwargs["env_cfg_entry_point"]])
+    #         # increment count
+    #         index += 1
+
     for task_spec in gym.registry.values():
-        if "Template-" in task_spec.id:
-            # add details to table
+        if task_spec.id.startswith(("Template-", "UR10e-")):
             table.add_row([index + 1, task_spec.id, task_spec.entry_point, task_spec.kwargs["env_cfg_entry_point"]])
-            # increment count
             index += 1
 
     print(table)
 
 
 if __name__ == "__main__":
+    # run the main function
     try:
-        # run the main function
         main()
-    except Exception as e:
-        raise e
     finally:
-        # close the app
-        simulation_app.close()
+        # simulation_app.close() 호출 생략
+        pass
