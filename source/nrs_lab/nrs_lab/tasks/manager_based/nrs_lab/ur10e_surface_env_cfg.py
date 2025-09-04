@@ -14,10 +14,10 @@ from isaaclab.managers import (
     SceneEntityCfg,
 )
 
-
 # MDP terms: actions / observations
 from isaaclab.envs.mdp.actions.actions_cfg import JointPositionActionCfg
 from isaaclab.envs.mdp import observations as mdp_obs
+
 
 # ---- Observation group (joint pos/vel) ----
 class UR10eObsCfg(ObservationGroupCfg):
@@ -31,12 +31,19 @@ class UR10eObsCfg(ObservationGroupCfg):
         params=SceneEntityCfg(name="robot"),
     )
 
+
 class UR10eSurfaceEnvCfg(ManagerBasedRLEnvCfg):
     def __init__(self, usd_path: str = "/home/eunseop/isaac/isaac_save/ur10e_concave_surface.usd"):
         super().__init__()
 
         # --- Simulation ---
         self.sim = SimulationCfg(device="cuda:0")  # 필요 시 "cpu" 가능
+
+        # --- Scene replication (✅ 필수 설정) ---
+        # 환경 개수와 환경 간 간격을 지정하지 않으면 _MISSING_TYPE 에러 발생
+        self.scene.num_envs = 1
+        self.scene.env_spacing = 2.0  # m
+        # (옵션) self.scene.env_offset = (0.0, 0.0, 0.0)
 
         # --- Scene: robot + ground ---
         self.robot = ArticulationCfg(
@@ -79,4 +86,4 @@ class UR10eSurfaceEnvCfg(ManagerBasedRLEnvCfg):
             "time_out": TerminationTermCfg(time_out=True),
         }
 
-        # Rewards / Commands / Curriculum / Randomization : intentionally omitted for minimal runnable setup
+        # Rewards / Commands / Curriculum / Randomization : intentionally omitted
