@@ -6,84 +6,83 @@ from isaaclab.sim import SimulationCfg
 from isaaclab.assets import ArticulationCfg
 import isaaclab.sim as sim_utils
 
-# Managers (groups/terms)
+# managers / mdp
 from isaaclab.managers import (
     ObservationGroupCfg,
     ObservationTermCfg,
-    TerminationTermCfg,
+    RewardTermCfg as RewTerm,
+    TerminationTermCfg as DoneTerm,
     SceneEntityCfg,
 )
-
-# MDP terms: actions / observations
-from isaaclab.envs.mdp.actions.actions_cfg import JointPositionActionCfg
 from isaaclab.envs.mdp import observations as mdp_obs
+from isaaclab.envs.mdp import rewards as mdp_rew
+from isaaclab.envs.mdp import terminations as mdp_terms
+
+# scene / actuators
+from isaaclab.scene import InteractiveSceneCfg
+from isaaclab.actuators import ImplicitActuatorCfg
+
+from isaaclab.envs.mdp.actions.actions_cfg import JointPositionActionCfg
+from isaaclab.utils import configclass
 
 
 # ---- Observation group (joint pos/vel) ----
 class UR10eObsCfg(ObservationGroupCfg):
-    # asset_name must match the attribute name used below ("robot")
     joint_pos: ObservationTermCfg = ObservationTermCfg(
-        func=mdp_obs.joint_pos,
-        params=SceneEntityCfg(name="robot"),
+        func=mdp_obs.joint_pos, params=SceneEntityCfg(name="robot")
     )
     joint_vel: ObservationTermCfg = ObservationTermCfg(
-        func=mdp_obs.joint_vel,
-        params=SceneEntityCfg(name="robot"),
+        func=mdp_obs.joint_vel, params=SceneEntityCfg(name="robot")
     )
+
+
+@configclass
+class ObservationsCfg:
+    policy: UR10eObsCfg = UR10eObsCfg()
+
+
+@configclass
+class ActionsCfg:
+    # PD position targets to all joints (regex ".*")
+    joint_pos: JointPositionActionCfg = JointPositionActionCfg(
+        asset_name="robot", joint_names=[".*"], use_default_offset=True, scale=1.0
+    )
+
+
+@configclass
+class RewardsCfg:
+    # 최소 보상: 살아있기 보상과 종료 패널티
+    alive: RewTerm = RewTerm(func=mdp_rew.is_alive, weight=1.0)
+    terminating: RewTerm = RewTerm(func=mdp_rew.is_terminated, weight=-2.0)
+
+
+@configclass
+class TerminationsCfg:
+    # 에피소드 타임아웃
+    time_out: DoneTerm = DoneTerm(func=mdp_terms.time_out, time_out=True)
 
 
 class UR10eSurfaceEnvCfg(ManagerBasedRLEnvCfg):
-    def __init__(self, usd_path: str = "/home/eunseop/isaac/isaac_save/ur10e_concave_surface.usd"):
-        super().__init__()
+    """Manager-based RL Env config for UR10e on a concave surface."""
 
-        # --- Simulation ---
-        self.sim = SimulationCfg(device="cuda:0")  # 필요 시 "cpu" 가능
+    # --- 필수: scene/주기/에피소드 길이 ---
+    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=2.0)
+    decimation: int = 2                 # 60 Hz 물리 * 2 = 30 Hz 제어주기
+    episode_length_s: float = 20.0      # 20초 에피소드(원하면 조절)
 
-        # --- Scene replication (✅ 필수 설정) ---
-        # 환경 개수와 환경 간 간격을 지정하지 않으면 _MISSING_TYPE 에러 발생
-        self.scene.num_envs = 1
-        self.scene.env_spacing = 2.0  # m
-        # (옵션) self.scene.env_offset = (0.0, 0.0, 0.0)
+    # --- Simulation ---
+    sim: SimulationCfg = SimulationCfg(device="cuda:0")
 
-        # --- Scene: robot + ground ---
-        self.robot = ArticulationCfg(
-            prim_path="/World/UR10e",
-            spawn=sim_utils.UsdFileCfg(
-                usd_path=usd_path,
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    disable_gravity=False,
-                    max_depenetration_velocity=5.0,
-                    linear_damping=0.05,
-                    angular_damping=0.05,
-                ),
-                articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                    enabled_self_collisions=True,
-                    solver_position_iteration_count=8,
-                    solver_velocity_iteration_count=0,
-                    fix_root_link=True,  # 탁상 고정 권장
-                ),
-            ),
-        )
-        self.ground = sim_utils.GroundPlaneCfg()
+    # --- Scene entities: robot + ground ---
+    robot: ArticulationCfg = ArticulationCfg(
+    prim_path="/World/ur10e_w_spindle_robot",  # ← Stage에서 실제 경로로 교체
+    spawn=None,                                 # 새 스폰 X, 기존 프림 사용
+    actuators={},                               # 기본 PD 사용
+    )
+    ground: sim_utils.GroundPlaneCfg = sim_utils.GroundPlaneCfg()
 
-        # --- Actions: joint position targets (PD inside simulator) ---
-        self.actions = {
-            "joint_pos": JointPositionActionCfg(
-                asset_name="robot",
-                joint_names=[".*"],      # 모든 조인트(정규식)
-                use_default_offset=True, # USD 초기자세를 오프로 사용
-                scale=1.0,
-            )
-        }
-
-        # --- Observations: expose joint state to the policy group ---
-        self.observations = {
-            "policy": UR10eObsCfg(),
-        }
-
-        # --- Terminations: minimal timeout ---
-        self.terminations = {
-            "time_out": TerminationTermCfg(time_out=True),
-        }
-
-        # Rewards / Commands / Curriculum / Randomization : intentionally omitted
+    # --- Managers ---
+    observations: ObservationsCfg = ObservationsCfg()
+    actions: ActionsCfg = ActionsCfg()
+    rewards: RewardsCfg = RewardsCfg()
+    terminations: TerminationsCfg = TerminationsCfg()
