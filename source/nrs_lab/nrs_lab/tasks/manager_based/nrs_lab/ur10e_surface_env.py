@@ -1,5 +1,6 @@
+# SPDX-License-Identifier: BSD-3-Clause
 import torch
-from isaaclab.envs.manager_based.manager_env import ManagerBasedRLEnv
+from isaaclab.envs import ManagerBasedRLEnv
 from .ur10e_surface_env_cfg import UR10eSurfaceEnvCfg
 
 class UR10eSurfaceEnv(ManagerBasedRLEnv):
@@ -10,14 +11,8 @@ class UR10eSurfaceEnv(ManagerBasedRLEnv):
 
     def reset(self, *args, **kwargs):
         obs = super().reset(*args, **kwargs)
-        # 간단히 UR10e 홈포즈로 리셋
+        # 홈 포즈(0)로 간단 초기화
         if hasattr(self, "robot"):
-            q_home = torch.zeros_like(self.robot.data.joint_pos)
-            self.robot.write_joint_state_to_sim(q_home, torch.zeros_like(q_home))
+            q = torch.zeros_like(self.robot.data.joint_pos)
+            self.robot.write_joint_state_to_sim(q, torch.zeros_like(q))
         return obs
-
-    def pre_physics_step(self, actions: torch.Tensor):
-        # 간단히 랜덤 노이즈 기반 제어
-        if hasattr(self, "robot"):
-            self.robot.set_joint_position_target(actions)
-        super().pre_physics_step(actions)

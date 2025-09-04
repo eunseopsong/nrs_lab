@@ -1,7 +1,6 @@
 import gymnasium as gym
 from . import agents
 
-# 기존 템플릿 태스크
 gym.register(
     id="Template-Nrs-Lab-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
@@ -12,7 +11,6 @@ gym.register(
     },
 )
 
-# 새 UR10e 태스크 등록
 gym.register(
     id="UR10e-Surface-v0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
