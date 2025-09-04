@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: BSD-3-Clause
-# Manager-based RL Env config for UR10e on concave surface (prebuilt USD stage).
+# UR10e Surface Environment Config
 
 import isaaclab.sim as sim_utils
-from isaaclab.assets import ArticulationCfg
+from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
 from isaaclab.managers import (
     ObservationGroupCfg as ObsGroup,
@@ -14,7 +14,7 @@ from isaaclab.managers import (
 from isaaclab.scene import InteractiveSceneCfg
 from isaaclab.utils import configclass
 
-# mdp 모듈 (관절 관측/보상/종료 함수)
+# MDP 함수들
 from isaaclab.envs.mdp import observations as mdp_obs
 from isaaclab.envs.mdp import rewards as mdp_rew
 from isaaclab.envs.mdp import terminations as mdp_terms
@@ -24,10 +24,10 @@ from isaaclab.envs.mdp.actions.actions_cfg import JointPositionActionCfg
 # ----------------- Observation group -----------------
 @configclass
 class UR10eObsCfg(ObsGroup):
-    """Joint position/velocity observations for policy group."""
+    """Joint state observations for policy."""
 
-    joint_pos: ObsTerm = ObsTerm(func=mdp_obs.joint_pos, params=SceneEntityCfg(name="robot"))
-    joint_vel: ObsTerm = ObsTerm(func=mdp_obs.joint_vel, params=SceneEntityCfg(name="robot"))
+    joint_pos: ObsTerm = ObsTerm(func=mdp_obs.joint_pos, params=SceneEntityCfg("robot"))
+    joint_vel: ObsTerm = ObsTerm(func=mdp_obs.joint_vel, params=SceneEntityCfg("robot"))
 
     def __post_init__(self):
         self.enable_corruption = False
@@ -42,7 +42,10 @@ class ObservationsCfg:
 @configclass
 class ActionsCfg:
     joint_pos: JointPositionActionCfg = JointPositionActionCfg(
-        asset_name="robot", joint_names=[".*"], use_default_offset=True, scale=1.0
+        asset_name="robot",
+        joint_names=[".*"],
+        use_default_offset=True,
+        scale=1.0,
     )
 
 
@@ -57,32 +60,42 @@ class TerminationsCfg:
     time_out: DoneTerm = DoneTerm(func=mdp_terms.time_out, time_out=True)
 
 
+# ----------------- Scene -----------------
+@configclass
+class UR10eSceneCfg(InteractiveSceneCfg):
+    """Scene containing UR10e and ground plane."""
+
+    # Ground
+    ground = AssetBaseCfg(
+        prim_path="/World/ground",
+        spawn=sim_utils.GroundPlaneCfg(),
+    )
+
+    # UR10e robot → 반드시 "robot" 키로 등록!
+    robot: ArticulationCfg = ArticulationCfg(
+        prim_path="/World/ur10e_w_spindle_robot",  # ← Stage에서 Copy Path 해서 정확히 수정
+        spawn=None,       # 프리빌트 프림 사용
+        actuators={},     # 기본 PD 드라이브
+    )
+
+
 # ----------------- Env Config -----------------
 @configclass
 class UR10eSurfaceEnvCfg(ManagerBasedRLEnvCfg):
-    """Manager-based RL Env for UR10e with concave surface (using existing USD stage)."""
+    """Manager-based RL Env for UR10e on concave surface."""
 
-    # 기본 필드들
-    scene: InteractiveSceneCfg = InteractiveSceneCfg(num_envs=1, env_spacing=2.0)
+    # Scene settings
+    scene: UR10eSceneCfg = UR10eSceneCfg(num_envs=1, env_spacing=2.0)
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
 
     def __post_init__(self):
-        """Post initialization hook."""
-        # --- general settings ---
+        # general
         self.decimation = 2
         self.episode_length_s = 20
 
-        # --- simulation settings ---
+        # simulation
         self.sim.device = "cuda:0"
-        self.sim.create_stage_in_memory = False  # 프리빌트 스테이지 그대로 사용
-
-        # --- robot binding ---
-        # Stage 트리에서 Copy Path로 정확한 prim_path 확인
-        self.robot = ArticulationCfg(
-            prim_path="/World/ur10e_w_spindle_robot",
-            spawn=None,   # 새로 스폰하지 않고 기존 프림 사용
-            actuators={}, # 기본 PD 드라이브
-        )
+        self.sim.create_stage_in_memory = False
