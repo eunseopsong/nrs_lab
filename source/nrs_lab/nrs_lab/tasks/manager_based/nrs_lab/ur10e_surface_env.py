@@ -70,7 +70,9 @@ class UR10eSceneCfg(InteractiveSceneCfg):
     stage_usd = AssetBaseCfg(
         prim_path="/",  # load at root
         spawn=sim_utils.UsdFileCfg(
-            usd_path="/home/eunseop/isaac/isaac_save/ur10e_concave_surface.usd"
+            # usd_path="/home/eunseop/isaac/isaac_save/ur10e_concave_surface.usd"
+            # usd_path="/home/eunseop/isaac/isaac_save/ur10e_convex_surface.usd"
+            usd_path="/home/eunseop/isaac/isaac_save/ur10e_only.usd"
         ),
     )
 

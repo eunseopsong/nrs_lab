@@ -78,7 +78,9 @@ class UR10eSceneCfg(InteractiveSceneCfg):
     robot: ArticulationCfg = ArticulationCfg(
         prim_path="/World/ur10e_w_spindle_robot",                 # 스테이지에서 Copy Path
         spawn=sim_utils.UsdFileCfg(
-            usd_path="/home/eunseop/isaac/isaac_save/ur10e_concave_surface.usd",
+            # usd_path="/home/eunseop/isaac/isaac_save/ur10e_concave_surface.usd",
+            # usd_path="/home/eunseop/isaac/isaac_save/ur10e_convex_surface.usd",
+            usd_path="/home/eunseop/isaac/isaac_save/ur10e_only.usd",
             # 필요시 prim_path="/*" 생략 가능 (루트에 World가 포함된 파일)
         ),
         actuators={},   # 기본 PD
